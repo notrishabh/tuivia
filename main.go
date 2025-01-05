@@ -16,12 +16,11 @@ func main() {
 	}
 
 	var (
-		name string
+		name     string
+		question string
 	)
 	var questions []quiz.QuizQuestion = quiz.Quiz()
-	for i, v := range questions[0].Answers {
-		fmt.Println(i, v)
-	}
+
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().Title(questions[0].Question).Options(
@@ -29,6 +28,15 @@ func main() {
 				huh.NewOption("ippi boi", "ippi"),
 				huh.NewOption("smol man", "smol"),
 			).Value(&name),
+			huh.NewSelect[string]().Value(&question).Title(questions[0].Question).OptionsFunc(func() []huh.Option[string] {
+				var opts []string
+				for _, v := range questions[0].Answers {
+					if v != "" {
+						opts = append(opts, v)
+					}
+				}
+				return huh.NewOptions(opts...)
+			}, &question),
 		),
 	)
 
