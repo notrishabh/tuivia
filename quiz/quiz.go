@@ -6,9 +6,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 )
-
-const apikey = "UjOF4LCB7cwBbtw9PIhFvHU1hNxrwHII7ieN8vFT"
 
 type QuizQuestion struct {
 	Id                     int32               `json:"id"`
@@ -24,6 +23,7 @@ type QuizQuestion struct {
 }
 
 func Quiz() []QuizQuestion {
+	apikey := os.Getenv("APIKEY")
 
 	client := &http.Client{}
 

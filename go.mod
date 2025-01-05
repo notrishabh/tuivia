@@ -2,7 +2,10 @@ module github.com/notrishabh/tuivia
 
 go 1.23.4
 
-require github.com/charmbracelet/huh v0.6.0
+require (
+	github.com/charmbracelet/huh v0.6.0
+	github.com/joho/godotenv v1.5.1
+)
 
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect

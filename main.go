@@ -5,14 +5,23 @@ import (
 	"log"
 
 	"github.com/charmbracelet/huh"
+	"github.com/joho/godotenv"
 	"github.com/notrishabh/tuivia/quiz"
 )
 
 func main() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	var (
 		name string
 	)
 	var questions []quiz.QuizQuestion = quiz.Quiz()
+	for i, v := range questions[0].Answers {
+		fmt.Println(i, v)
+	}
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().Title(questions[0].Question).Options(
@@ -23,7 +32,7 @@ func main() {
 		),
 	)
 
-	err := form.Run()
+	err = form.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
