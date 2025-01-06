@@ -5,23 +5,28 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 )
 
 type model struct {
-	choices  []string
-	cursor   int
-	selected map[int]struct{}
+	currentques int
+	form        *huh.Form
 }
 
 func initialModel() model {
 	return model{
-		choices:  []string{"One", "two"},
-		selected: make(map[int]struct{}),
+		form: huh.NewForm(
+			huh.NewGroup(
+				huh.NewSelect[string]().Key("name").Options(huh.NewOptions("yushu", "ippi", "smol")...).Title("Choose your name"),
+
+				huh.NewSelect[int]().Key("level").Options(huh.NewOptions(1, 2, 999)...).Title("Choose your level").Description("This will determine your level"),
+			),
+		),
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return m.form.Init()
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -30,50 +35,40 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		case "up", "k", "w":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j", "s":
-			if m.cursor < len(m.choices) {
-				m.cursor++
-			}
-		case "enter", " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
-			}
 		}
 	}
-	return m, nil
+
+	var cmds []tea.Cmd
+
+	form, cmd := m.form.Update(msg)
+	if f, ok := form.(*huh.Form); ok {
+		m.form = f
+		cmds = append(cmds, cmd)
+	}
+
+	if m.form.State == huh.StateCompleted {
+		cmds = append(cmds, tea.Quit)
+	}
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
-	s := "\nWhat should we get?\n\n"
+	s := "\nThis is a simple tech quiz\n\n"
 
-	for i, choice := range m.choices {
-		cursor := " "
-		if m.cursor == i {
-			cursor = ">"
-		}
-
-		checked := " "
-		if _, ok := m.selected[i]; ok {
-			checked = "x"
-		}
-
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+	if m.form.State == huh.StateCompleted {
+		name := m.form.GetString("name")
+		level := m.form.GetInt("level")
+		return fmt.Sprintf("You selected: %s, Lvl. %d", name, level)
 	}
-	s += "\nPress q to quit.\n"
-	return s
+	q := "\n\nPress q to quit.\n"
+
+	return s + m.form.View() + q
 }
 
 func RunTui() {
-	p := tea.NewProgram(initialModel())
+	_, err := tea.NewProgram(initialModel()).Run()
 
-	_, err := p.Run()
 	if err != nil {
 		fmt.Printf("Error boi: %v", err)
 		os.Exit(1)
