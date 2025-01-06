@@ -20,6 +20,7 @@ type QuizQuestion struct {
 	Tags                   []map[string]string `json:"tags"`
 	Category               string              `json:"category"`
 	Difficulty             string              `json:"difficulty"`
+	AnswersArray           []string
 }
 
 func Quiz() []QuizQuestion {
@@ -59,6 +60,16 @@ func Quiz() []QuizQuestion {
 	err = json.Unmarshal(body, &questions)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Converting map of answers to slice
+	for i := range questions {
+		for _, v := range questions[i].Answers {
+			if v != "" {
+				questions[i].AnswersArray = append(questions[i].AnswersArray, v)
+
+			}
+		}
 	}
 
 	return questions

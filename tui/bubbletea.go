@@ -6,22 +6,32 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/notrishabh/tuivia/quiz"
 )
 
 type model struct {
 	currentques int
 	form        *huh.Form
+	questions   []quiz.QuizQuestion
+}
+
+func createFormQues(currentques int, questions []quiz.QuizQuestion) *huh.Form {
+	ques := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Key(questions[currentques].Question).
+				Options(huh.NewOptions(questions[currentques].AnswersArray...)...).
+				Title(questions[currentques].Question),
+		),
+	)
+	return ques
 }
 
 func initialModel() model {
+	questions := quiz.Quiz()
 	return model{
-		form: huh.NewForm(
-			huh.NewGroup(
-				huh.NewSelect[string]().Key("name").Options(huh.NewOptions("yushu", "ippi", "smol")...).Title("Choose your name"),
-
-				huh.NewSelect[int]().Key("level").Options(huh.NewOptions(1, 2, 999)...).Title("Choose your level").Description("This will determine your level"),
-			),
-		),
+		form:      createFormQues(0, questions),
+		questions: questions,
 	}
 }
 
