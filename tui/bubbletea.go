@@ -15,22 +15,25 @@ type model struct {
 	questions   []quiz.QuizQuestion
 }
 
-func createFormQues(currentques int, questions []quiz.QuizQuestion) *huh.Form {
-	ques := huh.NewForm(
-		huh.NewGroup(
+func createGroups(questions []quiz.QuizQuestion) []*huh.Group {
+	var groups []*huh.Group
+
+	for _, q := range questions {
+		group := huh.NewGroup(
 			huh.NewSelect[string]().
-				Key(questions[currentques].Question).
-				Options(huh.NewOptions(questions[currentques].AnswersArray...)...).
-				Title(questions[currentques].Question),
-		),
-	)
-	return ques
+				Key(string(q.Id)).
+				Options(huh.NewOptions(q.AnswersArray...)...).
+				Title(q.Question),
+		)
+		groups = append(groups, group)
+	}
+	return groups
 }
 
 func initialModel() model {
 	questions := quiz.Quiz()
 	return model{
-		form:      createFormQues(0, questions),
+		form:      huh.NewForm(createGroups(questions)...),
 		questions: questions,
 	}
 }
@@ -67,9 +70,11 @@ func (m model) View() string {
 	s := "\nThis is a simple tech quiz\n\n"
 
 	if m.form.State == huh.StateCompleted {
-		name := m.form.GetString("name")
-		level := m.form.GetInt("level")
-		return fmt.Sprintf("You selected: %s, Lvl. %d", name, level)
+		for i, v := range m.questions {
+			ans := m.form.GetString(string(v.Id))
+			s += fmt.Sprintf("%d: %s\n", i+1, ans)
+		}
+		return s
 	}
 	q := "\n\nPress q to quit.\n"
 
