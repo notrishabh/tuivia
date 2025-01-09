@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -31,7 +32,10 @@ func createGroups(questions []quiz.QuizQuestion) []*huh.Group {
 }
 
 func initialModel() model {
-	questions := quiz.Quiz()
+	questions, err := quiz.Quiz()
+	if err != nil {
+		log.Fatal(err)
+	}
 	return model{
 		form:      huh.NewForm(createGroups(questions)...),
 		questions: questions,
