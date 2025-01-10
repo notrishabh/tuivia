@@ -21,6 +21,7 @@ func createGroups(questions []quiz.QuizQuestion) []*huh.Group {
 	for _, q := range questions {
 		group := huh.NewGroup(
 			huh.NewSelect[string]().
+				Description(fmt.Sprintf("Difficulty: %s", q.Difficulty)).
 				Key(string(q.Id)).
 				Options(huh.NewOptions(q.AnswersArray...)...).
 				Title(q.Question).Validate(func(s string) error {
