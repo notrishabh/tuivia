@@ -25,6 +25,7 @@ type QuizQuestion struct {
 	Category               string              `json:"category"`
 	Difficulty             string              `json:"difficulty"`
 	AnswersArray           []string
+	CorrectAnswer          string
 }
 
 func fetchApi(ctx context.Context, url string, results chan<- string, questionsChan chan<- []QuizQuestion) {
@@ -111,9 +112,35 @@ func Quiz() ([]QuizQuestion, error) {
 						ques[i].AnswersArray = append(ques[i].AnswersArray, v)
 					}
 				}
+
+				for k, v := range ques[i].CorrectAnswers {
+					if v == "true" {
+						ques[i].CorrectAnswer = ques[i].AnswersArray[mapCorrectAns(k)]
+					}
+
+				}
 			}
 		}()
 		wg.Wait()
 		return ques, nil
+	}
+}
+
+func mapCorrectAns(key string) int {
+	switch key {
+	case "answer_a_correct":
+		return 0
+	case "answer_b_correct":
+		return 1
+	case "answer_c_correct":
+		return 2
+	case "answer_d_correct":
+		return 3
+	case "answer_e_correct":
+		return 4
+	case "answer_f_correct":
+		return 5
+	default:
+		return 0
 	}
 }

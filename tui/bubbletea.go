@@ -11,9 +11,8 @@ import (
 )
 
 type model struct {
-	currentques int
-	form        *huh.Form
-	questions   []quiz.QuizQuestion
+	form      *huh.Form
+	questions []quiz.QuizQuestion
 }
 
 func createGroups(questions []quiz.QuizQuestion) []*huh.Group {
@@ -24,7 +23,12 @@ func createGroups(questions []quiz.QuizQuestion) []*huh.Group {
 			huh.NewSelect[string]().
 				Key(string(q.Id)).
 				Options(huh.NewOptions(q.AnswersArray...)...).
-				Title(q.Question),
+				Title(q.Question).Validate(func(s string) error {
+				if q.CorrectAnswer != s {
+					return fmt.Errorf("Wrong answer. Select correct ans: %s", q.CorrectAnswer)
+				}
+				return nil
+			}),
 		)
 		groups = append(groups, group)
 	}
