@@ -80,7 +80,9 @@ func (m model) View() string {
 	if m.form.State == huh.StateCompleted {
 		for i, v := range m.questions {
 			ans := m.form.GetString(string(v.Id))
-			s += fmt.Sprintf("%d: %s\n", i+1, ans)
+			s += fmt.Sprintf("Q%d: %s\n", i+1, v.Question)
+			s += fmt.Sprintf("A: %s\n", ans)
+			s += fmt.Sprintf("Explanation: %s\n\n", v.Explanation)
 		}
 		return s
 	}
