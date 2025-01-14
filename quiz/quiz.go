@@ -82,7 +82,7 @@ func Quiz(category string) ([]QuizQuestion, error) {
 
 	queryParams := url.Values{}
 	queryParams.Set("apiKey", apikey)
-	queryParams.Set("limit", "2")
+	queryParams.Set("limit", "5")
 	if category != "all" {
 		queryParams.Set("category", category)
 	}

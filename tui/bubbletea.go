@@ -4,16 +4,57 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/notrishabh/tuivia/quiz"
 )
+
+const maxWidth = 80
+
+var (
+	red    = lipgloss.AdaptiveColor{Light: "#FE5F86", Dark: "#FE5F86"}
+	indigo = lipgloss.AdaptiveColor{Light: "#5A56E0", Dark: "#7571F9"}
+	green  = lipgloss.AdaptiveColor{Light: "#02BA84", Dark: "#02BF87"}
+)
+
+type Styles struct {
+	Base,
+	HeaderText,
+	Status,
+	Highlight,
+	Help lipgloss.Style
+}
+
+func NewStyles(lg *lipgloss.Renderer) *Styles {
+	s := Styles{}
+	s.Base = lg.NewStyle().
+		Padding(1, 4, 0, 1)
+	s.HeaderText = lg.NewStyle().
+		Foreground(indigo).
+		Bold(true).
+		Padding(0, 1, 0, 2)
+	s.Status = lg.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(indigo).
+		PaddingLeft(1).
+		MarginTop(1)
+	s.Highlight = lg.NewStyle().
+		Foreground(lipgloss.Color("212"))
+	s.Help = lg.NewStyle().
+		Foreground(lipgloss.Color("240"))
+	return &s
+}
 
 type model struct {
 	form      *huh.Form
 	questions []quiz.QuizQuestion
 	end       bool
+	width     int
+	styles    *Styles
+	lg        *lipgloss.Renderer
 }
 
 var selectedCategory string
@@ -59,14 +100,12 @@ func createCategoryGroup() *huh.Group {
 }
 
 func initialModel() model {
-	questions, err := quiz.Quiz("all")
-	if err != nil {
-		log.Fatal(err)
-	}
-	return model{
-		form:      huh.NewForm(createCategoryGroup()),
-		questions: questions,
-	}
+	m := model{width: maxWidth}
+	m.lg = lipgloss.DefaultRenderer()
+	m.styles = NewStyles(m.lg)
+	m.form = huh.NewForm(createCategoryGroup()).WithShowHelp(false).WithShowErrors(false)
+
+	return m
 }
 
 func (m model) Init() tea.Cmd {
@@ -99,7 +138,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Fatal(err)
 			}
 			m.questions = questions
-			m.form = huh.NewForm(createGroups(questions)...)
+			m.form = huh.NewForm(createGroups(questions)...).WithShowHelp(false)
 			m.form.PrevGroup()
 			m.end = true
 		}
@@ -109,27 +148,46 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	s := "\nA simple tech quiz\n\n"
+	st := m.styles
+
+	v := strings.TrimSuffix(m.form.View(), "\n\n")
+	form := m.lg.NewStyle().Margin(1, 0).Render(v)
+
+	header := m.appBoundaryView(fmt.Sprintf("Huh? you know %s?", selectedCategory))
+	body := lipgloss.JoinHorizontal(lipgloss.Top, form)
+	footer := m.appBoundaryView(m.form.Help().ShortHelpView(m.form.KeyBinds()))
 
 	if m.form.State == huh.StateCompleted {
+		s := ""
 		for i, v := range m.questions {
 			ans := m.form.GetString(string(v.Id))
-			s += fmt.Sprintf("Q%d: %s\n", i+1, v.Question)
-			s += fmt.Sprintf("A: %s\n", ans)
-			s += fmt.Sprintf("Explanation: %s\n\n", v.Explanation)
+			s += fmt.Sprintf("Q%d: %s\n", i+1, st.Highlight.Render(v.Question))
+			s += fmt.Sprintf("A: %s\n\n", ans)
+			if v.Explanation != "" {
+				s += fmt.Sprintf("Explanation: %s\n\n\n", v.Explanation)
+			}
 		}
-		return s
+		return st.Status.Margin(0, 1).Padding(1, 2).Width(80).Render(s) + "\n\n"
 	}
-	q := "\n\nPress q to quit.\n"
 
-	return s + m.form.View() + q
+	return st.Base.Render(header + "\n" + body + "\n\n" + footer)
+}
+
+func (m model) appBoundaryView(text string) string {
+	return lipgloss.PlaceHorizontal(
+		m.width,
+		lipgloss.Left,
+		m.styles.HeaderText.Render(text),
+		lipgloss.WithWhitespaceChars("/"),
+		lipgloss.WithWhitespaceForeground(indigo),
+	)
 }
 
 func RunTui() {
 	_, err := tea.NewProgram(initialModel()).Run()
 
 	if err != nil {
-		fmt.Printf("Error boi: %v", err)
+		fmt.Printf("Error encountered: %v", err)
 		os.Exit(1)
 	}
 }
