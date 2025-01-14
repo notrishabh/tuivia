@@ -28,10 +28,14 @@ type QuizQuestion struct {
 	CorrectAnswer          string
 }
 
-func fetchApi(ctx context.Context, url string, results chan<- string, questionsChan chan<- []QuizQuestion) {
+type quesOrCate interface {
+	~[]QuizQuestion | ~[]Category
+}
+
+func fetchApi[T quesOrCate](ctx context.Context, url string, results chan<- string, resData chan<- T) {
 	go func() {
 		defer close(results)
-		defer close(questionsChan)
+		defer close(resData)
 
 		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 		if err != nil {
@@ -52,19 +56,19 @@ func fetchApi(ctx context.Context, url string, results chan<- string, questionsC
 			results <- fmt.Sprintf("Error reading response body from %s: %s", url, err.Error())
 			return
 		}
-		var questions []QuizQuestion
-		err = json.Unmarshal(body, &questions)
+		var data T
+		err = json.Unmarshal(body, &data)
 		if err != nil {
 			results <- fmt.Sprintf("Error unmarshalling response body from %s: %s", url, err.Error())
 			return
 		}
 
-		questionsChan <- questions
+		resData <- data
 
 	}()
 }
 
-func Quiz() ([]QuizQuestion, error) {
+func Quiz(category string) ([]QuizQuestion, error) {
 	var wg sync.WaitGroup
 
 	apikey := os.Getenv("APIKEY")
@@ -79,6 +83,9 @@ func Quiz() ([]QuizQuestion, error) {
 	queryParams := url.Values{}
 	queryParams.Set("apiKey", apikey)
 	queryParams.Set("limit", "2")
+	if category != "all" {
+		queryParams.Set("category", category)
+	}
 
 	endpoint.RawQuery = queryParams.Encode()
 

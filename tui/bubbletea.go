@@ -13,7 +13,10 @@ import (
 type model struct {
 	form      *huh.Form
 	questions []quiz.QuizQuestion
+	end       bool
 }
+
+var selectedCategory string
 
 func createGroups(questions []quiz.QuizQuestion) []*huh.Group {
 	var groups []*huh.Group
@@ -21,7 +24,7 @@ func createGroups(questions []quiz.QuizQuestion) []*huh.Group {
 	for _, q := range questions {
 		group := huh.NewGroup(
 			huh.NewSelect[string]().
-				Description(fmt.Sprintf("Difficulty: %s", q.Difficulty)).
+				Description(fmt.Sprintf("[%s] %s [%s]", q.Category, q.Description, q.Difficulty)).
 				Key(string(q.Id)).
 				Options(huh.NewOptions(q.AnswersArray...)...).
 				Title(q.Question).Validate(func(s string) error {
@@ -36,13 +39,32 @@ func createGroups(questions []quiz.QuizQuestion) []*huh.Group {
 	return groups
 }
 
+func createCategoryGroup() *huh.Group {
+	categories, err := quiz.GetCategories()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var categoriesSlice []string
+	for _, c := range categories {
+		categoriesSlice = append(categoriesSlice, c.Name)
+	}
+
+	categoryGroup := huh.NewGroup(
+		huh.NewSelect[string]().
+			Title("Select Category").
+			Options(huh.NewOptions(categoriesSlice...)...).Value(&selectedCategory),
+	)
+
+	return categoryGroup
+}
+
 func initialModel() model {
-	questions, err := quiz.Quiz()
+	questions, err := quiz.Quiz("all")
 	if err != nil {
 		log.Fatal(err)
 	}
 	return model{
-		form:      huh.NewForm(createGroups(questions)...),
+		form:      huh.NewForm(createCategoryGroup()),
 		questions: questions,
 	}
 }
@@ -69,14 +91,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.form.State == huh.StateCompleted {
-		cmds = append(cmds, tea.Quit)
+		if m.end {
+			cmds = append(cmds, tea.Quit)
+		} else {
+			questions, err := quiz.Quiz(selectedCategory)
+			if err != nil {
+				log.Fatal(err)
+			}
+			m.questions = questions
+			m.form = huh.NewForm(createGroups(questions)...)
+			m.form.PrevGroup()
+			m.end = true
+		}
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
-	s := "\nThis is a simple tech quiz\n\n"
+	s := "\nA simple tech quiz\n\n"
 
 	if m.form.State == huh.StateCompleted {
 		for i, v := range m.questions {
